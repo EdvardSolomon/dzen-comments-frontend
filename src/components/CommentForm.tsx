@@ -2,6 +2,8 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useDispatch } from "react-redux";
 import { addComment } from "../store/comments.slice";
+import { useMutation } from "@apollo/client";
+import { CREATE_COMMENT } from "../graphql/mutations";
 import { useRef, useState } from "react";
 import FileInput from "./FileInput";
 import Inputs from "../types/Inputs.type";
@@ -66,13 +68,15 @@ const CommentForm: React.FC<CommentFormProps> = ({
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const fileInputRef = useRef<any>(null);
 
-  const onSubmit: SubmitHandler<Inputs> = (data) => {
+  const [createComment, { loading: mutationLoading }] =
+    useMutation(CREATE_COMMENT);
+
+  const onSubmit: SubmitHandler<Inputs> = async (data) => {
     setPreviewContent(null);
 
     const imageUrl = data.image?.[0] ? URL.createObjectURL(data.image[0]) : "";
 
     const newComment = {
-      id: Date.now(),
       user_name: data.user_name,
       created_at: new Date().toISOString(),
       text: data.text,
@@ -82,11 +86,24 @@ const CommentForm: React.FC<CommentFormProps> = ({
       image_url: imageUrl,
     };
 
+    const response = await createComment({
+      variables: {
+        userName: newComment.user_name,
+        email: newComment.email,
+        text: newComment.text,
+        createdAt: newComment.created_at,
+        parentId: newComment.parent_id,
+        imageUrl: newComment.image_url,
+      },
+    });
+
+    if (response.data) {
+      dispatch(addComment(response.data.createComment));
+    }
+
     recaptchaRef.current?.reset();
     reset();
     fileInputRef.current?.resetFileInput();
-
-    dispatch(addComment(newComment));
 
     if (onSubmitSuccess) {
       onSubmitSuccess();

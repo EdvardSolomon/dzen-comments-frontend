@@ -1,78 +1,25 @@
-import React, { useState } from "react";
+import React from "react";
 import CommentItem from "./CommentItem";
-import IComment from "../interfaces/IComment";
-import { useSelector } from "react-redux";
 import NewCommentsButton from "./NewCommentsButton";
-
-const COMMENTS_PER_PAGE = 25;
+import useCommentsContainer from "../hooks/useCommentsContainer";
 
 const CommentList: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const comments = useSelector(
-    (state: { comments: { comments: IComment[] } }) => state.comments.comments
-  );
+  const {
+    comments,
+    currentPage,
+    totalPages,
+    loading,
+    error,
+    handleNextPage,
+    handlePrevPage,
+    handleSortChange,
+    buildCommentTree,
+    sortField,
+    sortOrder,
+  } = useCommentsContainer();
 
-  let rootComments = comments.filter((comment) => comment.parent_id === null);
-
-  if (sortField) {
-    rootComments = rootComments.sort((a, b) => {
-      if (sortField === "created_at") {
-        const dateA = new Date(a.created_at).getTime();
-        const dateB = new Date(b.created_at).getTime();
-        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
-      } else {
-        const valueA = (a as any)[sortField].toLowerCase();
-        const valueB = (b as any)[sortField].toLowerCase();
-        if (valueA < valueB) return sortOrder === "asc" ? -1 : 1;
-        if (valueA > valueB) return sortOrder === "asc" ? 1 : -1;
-        return 0;
-      }
-    });
-  }
-
-  const totalPages = Math.ceil(rootComments.length / COMMENTS_PER_PAGE);
-
-  const paginatedRootComments = rootComments.slice(
-    (currentPage - 1) * COMMENTS_PER_PAGE,
-    currentPage * COMMENTS_PER_PAGE
-  );
-
-  const buildCommentTree = (parentId: number | null) => {
-    return comments
-      .filter((comment) => comment.parent_id === parentId)
-      .map((comment, index) => (
-        <CommentItem
-          key={index}
-          comment={comment}
-        >
-          {buildCommentTree(comment.id)}
-        </CommentItem>
-      ));
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  const handleSortChange = (field: string) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortOrder("asc");
-    }
-    setCurrentPage(1);
-  };
+  if (loading) return <p>Loading comments...</p>;
+  //if (error) return <p>Error loading comments: {error.message}</p>;
 
   return (
     <div className='comment-list-container'>
@@ -103,16 +50,17 @@ const CommentList: React.FC = () => {
         </button>
       </div>
       <div className='comment-list mt-6'>
-        {paginatedRootComments.map((comment) => (
-          <CommentItem
-            key={comment.id}
-            comment={comment}
-          >
-            {buildCommentTree(comment.id)}
-          </CommentItem>
-        ))}
+        {comments
+          .filter((comment) => comment.parent_id === null)
+          .map((comment) => (
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+            >
+              {buildCommentTree(comment.id)}
+            </CommentItem>
+          ))}
       </div>
-
       <div className='pagination-controls mt-4 flex justify-center items-center gap-4'>
         <button
           className='bg-gray-300 px-4 py-2 rounded'
@@ -127,7 +75,7 @@ const CommentList: React.FC = () => {
         <button
           className='bg-gray-300 px-4 py-2 rounded'
           onClick={handleNextPage}
-          disabled={currentPage === totalPages}
+          disabled={loading}
         >
           Next
         </button>

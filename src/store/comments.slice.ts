@@ -67,19 +67,51 @@ export const commentsSlice = createSlice({
   initialState,
   reducers: {
     addComment: (state, action: PayloadAction<IComment>) => {
-      state.comments.unshift(action.payload);
+      const newComment = action.payload;
+      if (newComment.parent_id === null) {
+        state.comments.unshift(newComment);
+      } else {
+        const parentComment = state.comments.find(
+          (comment) => comment.id === newComment.parent_id
+        );
+
+        if (parentComment) {
+          if (parentComment.replies) {
+            parentComment.replies.push(newComment);
+          } else {
+            parentComment.replies = [newComment];
+          }
+        }
+      }
     },
     addNewComment: (state, action: PayloadAction<IComment>) => {
-      state.newComments.unshift(action.payload);
+      const newComment = action.payload;
+      if (newComment.parent_id === null) {
+        state.newComments.unshift(newComment);
+      } else {
+        const parentComment = state.comments.find(
+          (comment) => comment.id === newComment.parent_id
+        );
+        if (parentComment) {
+          if (parentComment.replies) {
+            parentComment.replies.push(newComment);
+          } else {
+            parentComment.replies = [newComment];
+          }
+        }
+      }
     },
     mergeNewComments: (state) => {
       state.comments = [...state.newComments, ...state.comments];
       state.newComments = [];
     },
+    setComments: (state, action: PayloadAction<IComment[]>) => {
+      state.comments = action.payload;
+    },
   },
 });
 
-export const { addComment, addNewComment, mergeNewComments } =
+export const { addComment, addNewComment, mergeNewComments, setComments } =
   commentsSlice.actions;
 
 export default commentsSlice.reducer;

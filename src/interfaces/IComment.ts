@@ -6,4 +6,5 @@ export default interface IComment {
   text: string;
   parent_id: number | null;
   image_url?: string;
+  replies?: IComment[];
 }
