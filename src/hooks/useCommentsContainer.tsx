@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLazyQuery } from "@apollo/client";
-import { setComments } from "../store/comments.slice";
+import {
+  setNewComments,
+  setComments,
+  setTotalComments,
+} from "../store/comments.slice";
 import IComment from "../interfaces/IComment";
 import CommentItem from "../components/CommentItem";
 import { GET_ROOT_COMMENTS } from "../graphql/queries/getRootComments";
@@ -19,6 +23,10 @@ const useCommentsContainer = () => {
   const newComments = useSelector(
     (state: { comments: { newComments: IComment[] } }) =>
       state.comments.newComments
+  );
+  const totalComments = useSelector(
+    (state: { comments: { totalComments: number } }) =>
+      state.comments.totalComments
   );
 
   const [getRootComments, { loading, error, data }] = useLazyQuery(
@@ -40,16 +48,19 @@ const useCommentsContainer = () => {
   }, [sortField, sortOrder, currentPage, getRootComments]);
 
   useEffect(() => {
-    if (data && data.rootComments) {
-      const commentsWithReplies = data.rootComments.flatMap(
-        (rootComment: IComment) => [rootComment, ...(rootComment.replies ?? [])]
-      );
-      dispatch(setComments([...newComments, ...commentsWithReplies]));
+    if (data && data.getRootComments && data.getRootComments.comments) {
+      const { comments: rootComments, totalComments } = data.getRootComments;
+
+      dispatch(setComments([...rootComments]));
+      dispatch(setNewComments([]));
+      dispatch(setTotalComments(totalComments));
+
+      console.log(rootComments);
     }
-  }, [data, dispatch, newComments]);
+  }, [data, dispatch]);
 
   const handleNextPage = () => {
-    if (!loading) {
+    if (!loading && currentPage * COMMENTS_PER_PAGE < totalComments) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -70,23 +81,24 @@ const useCommentsContainer = () => {
     setCurrentPage(1);
   };
 
-  const buildCommentTree = (parentId: number | null) => {
-    return comments
-      .filter((comment) => comment.parent_id === parentId)
-      .map((comment) => (
-        <CommentItem
-          key={comment.id}
-          comment={comment}
-        >
-          {buildCommentTree(comment.id)}
-        </CommentItem>
-      ));
+  const renderCommentTree = (comments: IComment[]): React.ReactNode => {
+    if (!comments || comments.length === 0) {
+      return null;
+    }
+
+    return comments.map((comment) => (
+      <CommentItem
+        key={comment.id}
+        comment={comment}
+      >
+        {comment.replies && comment.replies.length > 0 && (
+          <div className='ml-4'>{renderCommentTree(comment.replies)}</div>
+        )}
+      </CommentItem>
+    ));
   };
 
-  const totalPages = Math.ceil(
-    comments.filter((comment) => comment.parent_id === null).length /
-      COMMENTS_PER_PAGE
-  );
+  const totalPages = Math.ceil(totalComments / COMMENTS_PER_PAGE);
 
   return {
     comments,
@@ -97,7 +109,7 @@ const useCommentsContainer = () => {
     handleNextPage,
     handlePrevPage,
     handleSortChange,
-    buildCommentTree,
+    renderCommentTree,
     sortField,
     sortOrder,
   };
