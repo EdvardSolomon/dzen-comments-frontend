@@ -1,32 +1,39 @@
 import { gql } from "@apollo/client";
 
 export const GET_ROOT_COMMENTS = gql`
-  query GetRootComments(
+  query Comments(
     $sortField: String!
     $sortOrder: String!
     $limit: Int!
     $offset: Int!
   ) {
-    rootComments(
+    getRootComments(
       sortField: $sortField
       sortOrder: $sortOrder
       limit: $limit
       offset: $offset
     ) {
-      id
-      user_name
-      email
-      created_at
-      text
-      parent_id
-      replies {
+      comments {
         id
-        user_name
-        email
         created_at
-        text
+        email
+        image_url
         parent_id
+        text
+        user_name
+        replies {
+          created_at
+          email
+          hasReplies
+          id
+          image_url
+          parent_id
+          text
+          user_name
+        }
+        hasMoreReplies
       }
+      totalComments
     }
   }
 `;
