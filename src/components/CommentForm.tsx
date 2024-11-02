@@ -78,7 +78,6 @@ const CommentForm: React.FC<CommentFormProps> = ({
 
     const newComment = {
       user_name: data.user_name,
-      created_at: new Date().toISOString(),
       text: data.text,
       email: data.email,
       homepage: data.homepage,
@@ -88,12 +87,13 @@ const CommentForm: React.FC<CommentFormProps> = ({
 
     const response = await createComment({
       variables: {
-        userName: newComment.user_name,
-        email: newComment.email,
-        text: newComment.text,
-        createdAt: newComment.created_at,
-        parentId: newComment.parent_id,
-        imageUrl: newComment.image_url,
+        input: {
+          user_name: newComment.user_name,
+          email: newComment.email,
+          text: newComment.text,
+          parent_id: newComment.parent_id,
+          image_url: newComment.image_url,
+        },
       },
     });
 
@@ -112,7 +112,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
 
   const insertTag = (tag: string, value?: string) => {
     const textarea = document.querySelector(
-      'textarea[name="text"]'
+      `textarea[name="text"][data-formId="${parentId}"]`
     ) as HTMLTextAreaElement;
 
     if (textarea) {
@@ -289,6 +289,7 @@ const CommentForm: React.FC<CommentFormProps> = ({
 
         <div className='mb-4'>
           <textarea
+            data-formId={`${parentId}`}
             defaultValue='Your comment'
             {...register("text", {
               required: true,

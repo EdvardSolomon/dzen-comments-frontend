@@ -1,7 +1,7 @@
 import React from "react";
-import CommentItem from "./CommentItem";
 import NewCommentsButton from "./NewCommentsButton";
 import useCommentsContainer from "../hooks/useCommentsContainer";
+import CommentSkeleton from "./CommentSkeleton";
 
 const CommentList: React.FC = () => {
   const {
@@ -13,13 +13,36 @@ const CommentList: React.FC = () => {
     handleNextPage,
     handlePrevPage,
     handleSortChange,
-    buildCommentTree,
+    renderCommentTree,
     sortField,
     sortOrder,
   } = useCommentsContainer();
 
-  if (loading) return <p>Loading comments...</p>;
-  //if (error) return <p>Error loading comments: {error.message}</p>;
+  if (loading) {
+    return (
+      <div className='comment-list mt-6'>
+        {Array.from({ length: 10 }).map((_, index) => (
+          <CommentSkeleton key={index} />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className='error-container text-center mt-6'>
+        <p className='text-red-500 text-lg'>
+          Error loading comments: {error.message}
+        </p>
+        <button
+          className='bg-red-500 text-white px-4 py-2 rounded mt-4 hover:bg-red-600 transition'
+          onClick={() => window.location.reload()}
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className='comment-list-container'>
@@ -50,16 +73,7 @@ const CommentList: React.FC = () => {
         </button>
       </div>
       <div className='comment-list mt-6'>
-        {comments
-          .filter((comment) => comment.parent_id === null)
-          .map((comment) => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-            >
-              {buildCommentTree(comment.id)}
-            </CommentItem>
-          ))}
+        {comments && comments.length > 0 && renderCommentTree(comments)}
       </div>
       <div className='pagination-controls mt-4 flex justify-center items-center gap-4'>
         <button
