@@ -7,4 +7,6 @@ export default interface IComment {
   parent_id: number | null;
   image_url?: string;
   replies?: IComment[];
+  hasMoreReplies?: boolean;
+  hasReplies?: boolean;
 }
